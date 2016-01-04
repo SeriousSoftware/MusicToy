@@ -1,58 +1,19 @@
-/*****************************************************************************
-*
-*  This file is part of the MusicToy project. The project is
-*  distributed at:
-*  https://github.com/maximecb/MusicToy
-*
-*  Copyright (c) 2012, Maxime Chevalier-Boisvert. All rights reserved.
-*
-*  This software is licensed under the following license (Modified BSD
-*  License):
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions are
-*  met:
-*   1. Redistributions of source code must retain the above copyright
-*      notice, this list of conditions and the following disclaimer.
-*   2. Redistributions in binary form must reproduce the above copyright
-*      notice, this list of conditions and the following disclaimer in the
-*      documentation and/or other materials provided with the distribution.
-*   3. The name of the author may not be used to endorse or promote
-*      products derived from this software without specific prior written
-*      permission.
-*
-*  THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
-*  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-*  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-*  NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-*  NOT LIMITED TO PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-*  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-*  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-*  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-*  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
-*****************************************************************************/
-
-/**
-@class Simple virtual analog synthesizer
-@extends SynthNode
-*/
-function VAnalog(numOscs)
-{
+/** @class Simple virtual analog synthesizer
+ @extends SynthNode
+ */
+function VAnalog(numOscs) {
     if (numOscs === undefined)
         numOscs = 1;
 
     this.name = 'vanalog';
 
     /**
-    Array of oscillator parameters
-    */
+     Array of oscillator parameters
+     */
     this.oscs = new Array(numOscs);
 
     // Initialize the oscillator parameters
-    for (var i = 0; i < numOscs; ++i)
-    {
+    for (var i = 0; i < numOscs; ++i) {
         var osc = this.oscs[i] = {};
 
         // Oscillator type
@@ -78,48 +39,48 @@ function VAnalog(numOscs)
     }
 
     /**
-    Filter cutoff [0,1]
-    */
+     Filter cutoff [0,1]
+     */
     this.cutoff = 1;
 
     /**
-    Filter resonance [0,1]
-    */
+     Filter resonance [0,1]
+     */
     this.resonance = 0;
 
     /**
-    Filter envelope
-    */
+     Filter envelope
+     */
     this.filterEnv = new ADSREnv(0, 0, 1, Infinity);
 
     /**
-    Filter envelope modulation amount
-    */
+     Filter envelope modulation amount
+     */
     this.filterEnvAmt = 1;
 
     /**
-    Pitch envelope
-    */
+     Pitch envelope
+     */
     this.pitchEnv = new ADSREnv(0, 0, 1, Infinity);
 
     /**
-    Pitch envelope amount
-    */
+     Pitch envelope amount
+     */
     this.pitchEnvAmt = 0;
 
     /**
-    Active/on note array
-    */
+     Active/on note array
+     */
     this.actNotes = [];
 
     /**
-    Temporary oscillator buffer, for intermediate processing
-    */
+     Temporary oscillator buffer, for intermediate processing
+     */
     this.oscBuf = new Float64Array(SYNTH_BUF_SIZE);
 
     /**
-    Temporary note buffer, for intermediate processing
-    */
+     Temporary note buffer, for intermediate processing
+     */
     this.noteBuf = new Float64Array(SYNTH_BUF_SIZE);
 
     // Sound output
@@ -128,32 +89,27 @@ function VAnalog(numOscs)
 VAnalog.prototype = new SynthNode();
 
 /**
-Process an event
-*/
-VAnalog.prototype.processEvent = function (evt, time)
-{
+ Process an event
+ */
+VAnalog.prototype.processEvent = function (evt, time) {
     // Note-on event
-    if (evt instanceof NoteOnEvt)
-    {
+    if (evt instanceof NoteOnEvt) {
         // Get the note
         var note = evt.note;
 
         // Try to find the note among the active list
         var noteState = undefined;
-        for (var i = 0; i < this.actNotes.length; ++i)
-        {
+        for (var i = 0; i < this.actNotes.length; ++i) {
             var state = this.actNotes[i];
 
-            if (state.note === note)
-            {
+            if (state.note === note) {
                 noteState = state;
                 break;
             }
         }
 
         // If the note was not active before
-        if (noteState === undefined)
-        {
+        if (noteState === undefined) {
             noteState = {};
 
             // Note being played
@@ -170,8 +126,7 @@ VAnalog.prototype.processEvent = function (evt, time)
 
             // Initialize the oscillator states
             noteState.oscs = new Array(this.oscs.length);
-            for (var i = 0; i < this.oscs.length; ++i)
-            {
+            for (var i = 0; i < this.oscs.length; ++i) {
                 var oscState = {};
                 noteState.oscs[i] = oscState;
 
@@ -204,16 +159,14 @@ VAnalog.prototype.processEvent = function (evt, time)
         }
 
         // If the note was active before
-        else
-        {
+        else {
             // Store the oscillator amplitudes at note-on time
-            for (var i = 0; i < this.oscs.length; ++i)
-            {
+            for (var i = 0; i < this.oscs.length; ++i) {
                 var oscState = noteState.oscs[i];
 
                 oscState.onAmp = this.oscs[i].env.getValue(
                     time,
-                    noteState.onTime, 
+                    noteState.onTime,
                     noteState.offTime,
                     oscState.onAmp,
                     oscState.offAmp
@@ -225,7 +178,7 @@ VAnalog.prototype.processEvent = function (evt, time)
             // Filter envelope value at note-on time
             noteState.filterOnEnv = this.filterEnv.getValue(
                 time,
-                noteState.onTime, 
+                noteState.onTime,
                 noteState.offTime,
                 noteState.filterOnEnv,
                 noteState.filterOffEnv
@@ -234,7 +187,7 @@ VAnalog.prototype.processEvent = function (evt, time)
             // Pitch envelope value at note-on time
             noteState.pitchOnEnv = this.pitchEnv.getValue(
                 time,
-                noteState.onTime, 
+                noteState.onTime,
                 noteState.offTime,
                 noteState.pitchOnEnv,
                 noteState.pitchOffEnv
@@ -252,35 +205,30 @@ VAnalog.prototype.processEvent = function (evt, time)
     }
 
     // Note-off event
-    else if (evt instanceof NoteOffEvt)
-    {
+    else if (evt instanceof NoteOffEvt) {
         // Get the note
         var note = evt.note;
 
         // Try to find the note among the active list
         var noteState = undefined;
-        for (var i = 0; i < this.actNotes.length; ++i)
-        {
+        for (var i = 0; i < this.actNotes.length; ++i) {
             var state = this.actNotes[i];
 
-            if (state.note === note)
-            {
+            if (state.note === note) {
                 noteState = state;
                 break;
             }
         }
 
         // If the note is active
-        if (noteState !== undefined)
-        {
+        if (noteState !== undefined) {
             // Store the oscillator amplitudes at note-off time
-            for (var i = 0; i < this.oscs.length; ++i)
-            {
+            for (var i = 0; i < this.oscs.length; ++i) {
                 var oscState = noteState.oscs[i];
 
                 oscState.offAmp = this.oscs[i].env.getValue(
                     time,
-                    noteState.onTime, 
+                    noteState.onTime,
                     noteState.offTime,
                     oscState.onAmp,
                     oscState.offAmp
@@ -290,7 +238,7 @@ VAnalog.prototype.processEvent = function (evt, time)
             // Filter envelope value at note-off time
             noteState.filterOffEnv = this.filterEnv.getValue(
                 time,
-                noteState.onTime, 
+                noteState.onTime,
                 noteState.offTime,
                 noteState.filterOnEnv,
                 noteState.filterOffEnv
@@ -300,7 +248,7 @@ VAnalog.prototype.processEvent = function (evt, time)
             // Pitch envelope value at note-off time
             noteState.pitchOffEnv = this.pitchEnv.getValue(
                 time,
-                noteState.onTime, 
+                noteState.onTime,
                 noteState.offTime,
                 noteState.pitchOnEnv,
                 noteState.pitchOffEnv
@@ -312,19 +260,17 @@ VAnalog.prototype.processEvent = function (evt, time)
     }
 
     // All notes off event
-    else if (evt instanceof AllNotesOffEvt)
-    {
+    else if (evt instanceof AllNotesOffEvt) {
         this.actNotes = [];
     }
 
     // By default, do nothing
-}
+};
 
 /**
-Update the outputs based on the inputs
-*/
-VAnalog.prototype.update = function (time, sampleRate)
-{
+ Update the outputs based on the inputs
+ */
+VAnalog.prototype.update = function (time, sampleRate) {
     // If there are no active notes, do nothing
     if (this.actNotes.length === 0)
         return;
@@ -340,8 +286,7 @@ VAnalog.prototype.update = function (time, sampleRate)
     var endTime = time + ((outBuf.length - 1) / sampleRate);
 
     // For each active note
-    for (var i = 0; i < this.actNotes.length; ++i)
-    {
+    for (var i = 0; i < this.actNotes.length; ++i) {
         var noteState = this.actNotes[i];
 
         // Initialize the note buffer to 0
@@ -352,8 +297,7 @@ VAnalog.prototype.update = function (time, sampleRate)
         var maxEndAmp = 0;
 
         // For each oscillator
-        for (var oscNo = 0; oscNo < this.oscs.length; ++oscNo)
-        {
+        for (var oscNo = 0; oscNo < this.oscs.length; ++oscNo) {
             var oscParams = this.oscs[oscNo];
             var oscState = noteState.oscs[oscNo];
 
@@ -363,7 +307,7 @@ VAnalog.prototype.update = function (time, sampleRate)
                 this.oscBuf,
                 oscParams,
                 oscState,
-                noteState, 
+                noteState,
                 sampleRate
             );
 
@@ -372,21 +316,21 @@ VAnalog.prototype.update = function (time, sampleRate)
 
             // Get the amplitude value at the start of the buffer
             var ampStart = noteVol * oscParams.env.getValue(
-                time,
-                noteState.onTime, 
-                noteState.offTime,
-                oscState.onAmp,
-                oscState.offAmp
-            );
+                    time,
+                    noteState.onTime,
+                    noteState.offTime,
+                    oscState.onAmp,
+                    oscState.offAmp
+                );
 
             // Get the envelope value at the end of the buffer
             var ampEnd = noteVol * oscParams.env.getValue(
-                endTime,
-                noteState.onTime, 
-                noteState.offTime,
-                oscState.onAmp,
-                oscState.offAmp
-            );
+                    endTime,
+                    noteState.onTime,
+                    noteState.offTime,
+                    oscState.onAmp,
+                    oscState.offAmp
+                );
 
             //console.log('start time: ' + time);
             //console.log('start env: ' + envStart);
@@ -396,8 +340,7 @@ VAnalog.prototype.update = function (time, sampleRate)
             maxEndAmp = Math.max(maxEndAmp, ampEnd);
 
             // Modulate the output based on the amplitude envelope
-            for (var smpIdx = 0; smpIdx < outBuf.length; ++smpIdx)
-            {
+            for (var smpIdx = 0; smpIdx < outBuf.length; ++smpIdx) {
                 var ratio = (smpIdx / (outBuf.length - 1));
                 this.oscBuf[smpIdx] *= ampStart + ratio * (ampEnd - ampStart);
             }
@@ -415,34 +358,30 @@ VAnalog.prototype.update = function (time, sampleRate)
             outBuf[smpIdx] += this.noteBuf[smpIdx];
 
         // If all envelopes have fallen to 0, remove the note from the active list        
-        if (maxEndAmp === 0)
-        {
+        if (maxEndAmp === 0) {
             this.actNotes.splice(i, 1);
             i--;
         }
     }
-}
+};
 
 /**
-Generate output for an oscillator and update its position
-*/
-VAnalog.prototype.genOsc = function (
-    time,
-    outBuf, 
-    oscParams, 
-    oscState, 
-    noteState, 
-    sampleRate
-)
-{
+ Generate output for an oscillator and update its position
+ */
+VAnalog.prototype.genOsc = function (time,
+                                     outBuf,
+                                     oscParams,
+                                     oscState,
+                                     noteState,
+                                     sampleRate) {
     // Get the pitch envelope detuning value
     var envDetune = this.pitchEnvAmt * this.pitchEnv.getValue(
-        time,
-        noteState.onTime, 
-        noteState.offTime,
-        noteState.pitchOnEnv,
-        noteState.pitchOffEnv
-    );
+            time,
+            noteState.onTime,
+            noteState.offTime,
+            noteState.pitchOnEnv,
+            noteState.pitchOffEnv
+        );
 
     // Get the note
     var note = noteState.note;
@@ -453,7 +392,7 @@ VAnalog.prototype.genOsc = function (
     // Get the initial cycle position
     var cyclePos = oscState.cyclePos;
 
-    // Compute the cycle position change between samples
+    // Compute the cycle position change between resources
     var deltaPos = freq / sampleRate;
 
     // Get the sync oscillator frequency
@@ -462,61 +401,57 @@ VAnalog.prototype.genOsc = function (
     // Get the initial sync cycle position
     var syncCyclePos = oscState.syncCyclePos;
 
-    // Compute the cycle position change between samples
+    // Compute the cycle position change between resources
     var syncDeltaPos = syncFreq / sampleRate;
 
     // For each sample to be produced
-    for (var i = 0; i < outBuf.length; ++i)
-    {
+    for (var i = 0; i < outBuf.length; ++i) {
         // Switch on the oscillator type/waveform
-        switch (oscParams.type)
-        {
+        switch (oscParams.type) {
             // Sine wave        
             case 'sine':
-            outBuf[i] = Math.sin(2 * Math.PI * cyclePos);
-            break;
+                outBuf[i] = Math.sin(2 * Math.PI * cyclePos);
+                break;
 
             // Triangle wave
             case 'triangle':
-            if (cyclePos < 0.5)
-                outBuf[i] = (4 * cyclePos) - 1;
-            else
-                outBuf[i] = 1 - (4 * (cyclePos - 0.5));
-            break;
+                if (cyclePos < 0.5)
+                    outBuf[i] = (4 * cyclePos) - 1;
+                else
+                    outBuf[i] = 1 - (4 * (cyclePos - 0.5));
+                break;
 
             // Sawtooth wave
             case 'sawtooth':
-            outBuf[i] = -1 + (2 * cyclePos);
-            break;
+                outBuf[i] = -1 + (2 * cyclePos);
+                break;
 
             // Pulse wave
             case 'pulse':
-            if (cyclePos < oscParams.duty)
-                outBuf[i] = -1;
-            else
-                outBuf[i] = 1;
-            break;
+                if (cyclePos < oscParams.duty)
+                    outBuf[i] = -1;
+                else
+                    outBuf[i] = 1;
+                break;
 
             // Noise
             case 'noise':
-            outBuf[i] = 1 - 2 * Math.random();
-            break;
+                outBuf[i] = 1 - 2 * Math.random();
+                break;
 
             default:
-            error('invalid waveform: ' + oscParams.type);
+                error('invalid waveform: ' + oscParams.type);
         }
 
         cyclePos += deltaPos;
 
-        if (cyclePos > 1) 
+        if (cyclePos > 1)
             cyclePos -= 1;
 
-        if (oscParams.sync === true)
-        {
+        if (oscParams.sync) {
             syncCyclePos += syncDeltaPos;
 
-            if (syncCyclePos > 1)
-            {
+            if (syncCyclePos > 1) {
                 syncCyclePos -= 1;
                 cyclePos = 0;
             }
@@ -528,27 +463,26 @@ VAnalog.prototype.genOsc = function (
 
     // Set the final sync cycle position
     oscState.syncCyclePos = syncCyclePos;
-}
+};
 
 /**
-Apply a filter to a buffer of samples
-IIR, 2-pole, resonant Low Pass Filter (LPF)
-*/
-VAnalog.prototype.applyFilter = function (time, noteState, buffer)
-{
-    assert (
+ Apply a filter to a buffer of resources
+ IIR, 2-pole, resonant Low Pass Filter (LPF)
+ */
+VAnalog.prototype.applyFilter = function (time, noteState, buffer) {
+    assert(
         this.cutoff >= 0 && this.cutoff <= 1,
         'invalid filter cutoff'
     );
 
-    assert (
+    assert(
         this.resonance >= 0 && this.resonance <= 1,
         'invalid filter resonance'
     );
 
     var filterEnvVal = this.filterEnv.getValue(
         time,
-        noteState.onTime, 
+        noteState.onTime,
         noteState.offTime,
         noteState.filterOnEnv,
         noteState.filterOffEnv
@@ -566,8 +500,7 @@ VAnalog.prototype.applyFilter = function (time, noteState, buffer)
     var v0 = noteState.filterSt[0];
     var v1 = noteState.filterSt[1];
 
-    for (var i = 0; i < buffer.length; ++i)
-    {
+    for (var i = 0; i < buffer.length; ++i) {
         v0 = (mrc * v0) - (c * v1) + (c * buffer[i]);
         v1 = (mrc * v1) + (c * v0);
 
@@ -576,5 +509,5 @@ VAnalog.prototype.applyFilter = function (time, noteState, buffer)
 
     noteState.filterSt[0] = v0;
     noteState.filterSt[1] = v1;
-}
+};
 

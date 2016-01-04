@@ -1,59 +1,22 @@
-/*****************************************************************************
-*
-*  This file is part of the MusicToy project. The project is
-*  distributed at:
-*  https://github.com/maximecb/MusicToy
-*
-*  Copyright (c) 2012, Maxime Chevalier-Boisvert. All rights reserved.
-*
-*  This software is licensed under the following license (Modified BSD
-*  License):
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions are
-*  met:
-*   1. Redistributions of source code must retain the above copyright
-*      notice, this list of conditions and the following disclaimer.
-*   2. Redistributions in binary form must reproduce the above copyright
-*      notice, this list of conditions and the following disclaimer in the
-*      documentation and/or other materials provided with the distribution.
-*   3. The name of the author may not be used to endorse or promote
-*      products derived from this software without specific prior written
-*      permission.
-*
-*  THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
-*  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-*  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-*  NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-*  NOT LIMITED TO PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-*  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-*  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-*  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-*  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
-*****************************************************************************/
-
 //============================================================================
-// Synthesis network core
+// Syntheis network core
 //============================================================================
 
 /**
-Buffer size used by the synthesis network
-*/
+ Buffer size used by the synthesis network
+ */
 var SYNTH_BUF_SIZE = 256;
 
 /**
-Buffer containing only zero data
-*/
+ Buffer containing only zero data
+ */
 var SYNTH_ZERO_BUF = new Float64Array(SYNTH_BUF_SIZE);
 
 /**
-@class Synthesis node output
-*/
-function SynthOutput(node, name, numChans)
-{
-    assert (
+ @class Synthesis node output
+ */
+function SynthOutput(node, name, numChans) {
+    assert(
         node[name] === undefined,
         'node already has property with this name'
     );
@@ -63,33 +26,33 @@ function SynthOutput(node, name, numChans)
         numChans = 1;
 
     /**
-    Parent synthesis node
-    */
+     Parent synthesis node
+     */
     this.node = node;
 
     /**
-    Output name
-    */
+     Output name
+     */
     this.name = name;
 
     /**
-    Number of output channels
-    */
+     Number of output channels
+     */
     this.numChans = numChans;
 
     /**
-    Output buffers, one per channel
-    */
+     Output buffers, one per channel
+     */
     this.buffers = new Array(numChans);
 
     /**
-    Flag to indicate output was produced in the current iteration
-    */
+     Flag to indicate output was produced in the current iteration
+     */
     this.hasData = false;
 
     /**
-    Connected destination nodes
-    */
+     Connected destination nodes
+     */
     this.dsts = [];
 
     // Allocate the output buffers
@@ -101,11 +64,10 @@ function SynthOutput(node, name, numChans)
 }
 
 /**
-Get the buffer for a given channel
-*/
-SynthOutput.prototype.getBuffer = function (chanIdx)
-{
-    assert (
+ Get the buffer for a given channel
+ */
+SynthOutput.prototype.getBuffer = function (chanIdx) {
+    assert(
         !(chanIdx === undefined && this.numChans > 1),
         'channel idx must be specified when more than 1 channel'
     );
@@ -117,30 +79,29 @@ SynthOutput.prototype.getBuffer = function (chanIdx)
     this.hasData = true;
 
     return this.buffers[chanIdx];
-}
+};
 
 /**
-Connect to a synthesis input
-*/
-SynthOutput.prototype.connect = function (dst)
-{
-    assert (
+ Connect to a synthesis input
+ */
+SynthOutput.prototype.connect = function (dst) {
+    assert(
         dst instanceof SynthInput,
         'invalid dst'
     );
 
-    assert (
+    assert(
         this.dsts.indexOf(dst) === -1,
         'already connected to input'
     );
 
-    assert (
+    assert(
         dst.src === undefined,
         'dst already connected to an output'
     );
 
-    assert (
-        this.numChans === dst.numChans || 
+    assert(
+        this.numChans === dst.numChans ||
         this.numChans === 1,
         'mismatch in the channel count'
     );
@@ -149,14 +110,13 @@ SynthOutput.prototype.connect = function (dst)
 
     this.dsts.push(dst);
     dst.src = this;
-}
+};
 
 /**
-@class Synthesis node input
-*/
-function SynthInput(node, name, numChans)
-{
-    assert (
+ @class Synthesis node input
+ */
+function SynthInput(node, name, numChans) {
+    assert(
         node[name] === undefined,
         'node already has property with this name'
     );
@@ -173,38 +133,36 @@ function SynthInput(node, name, numChans)
 }
 
 /**
-Test if data is available
-*/
-SynthInput.prototype.hasData = function ()
-{
+ Test if data is available
+ */
+SynthInput.prototype.hasData = function () {
     if (this.src === undefined)
         return false;
 
     return this.src.hasData;
-}
+};
 
 /**
-Get the buffer for a given channel
-*/
-SynthInput.prototype.getBuffer = function (chanIdx)
-{
-    assert (
+ Get the buffer for a given channel
+ */
+SynthInput.prototype.getBuffer = function (chanIdx) {
+    assert(
         this.src instanceof SynthOutput,
         'synth input not connected to any output'
     );
 
-    assert (
+    assert(
         !(chanIdx === undefined && this.numChans > 1),
         'channel idx must be specified when more than 1 channel'
     );
 
-    assert (
+    assert(
         chanIdx < this.src.numChans || this.src.numChans === 1,
         'invalid chan idx: ' + chanIdx
     );
 
     // If the source has no data, return the zero buffer
-    if (this.src.hasData === false)
+    if (!this.src.hasData)
         return SYNTH_ZERO_BUF;
 
     if (chanIdx === undefined)
@@ -214,79 +172,69 @@ SynthInput.prototype.getBuffer = function (chanIdx)
         chanIdx = 0;
 
     return this.src.buffers[chanIdx];
-}
+};
 
 /**
-@class Synthesis network node
-*/
-function SynthNode()
-{
+ @class Synthesis network node
+ */
+function SynthNode() {
     /**
-    Node name
-    */
+     Node name
+     */
     this.name = '';
 }
 
 /**
-Process an event
-*/
-SynthNode.prototype.processEvent = function (evt, time)
-{
+ Process an event
+ */
+SynthNode.prototype.processEvent = function (evt, time) {
     // By default, do nothing
-}
+};
 
 /**
-Update the outputs based on the inputs
-*/
-SynthNode.prototype.update = function (time, sampleRate)
-{
+ Update the outputs based on the inputs
+ */
+SynthNode.prototype.update = function (time, sampleRate) {
     // By default, do nothing
-}
+};
 
 /**
-Audio synthesis network
-*/
-function SynthNet(sampleRate)
-{
+ Audio synthesis network
+ */
+function SynthNet(sampleRate) {
     console.log('Creating synth network');
 
-    assert (
-        isPosInt(sampleRate),
-        'invalid sample rate'
-    );
-
     /**
-    Sample rate
-    */
+     Sample rate
+     */
     this.sampleRate = sampleRate;
 
     /**
-    List of nodes
-    */
+     List of nodes
+     */
     this.nodes = [];
 
     /**
-    Output node
-    */
+     Output node
+     */
     this.outNode = null;
 
     /**
-    Topological ordering of nodes
-    */
+     Topological ordering of nodes
+     */
     this.order = undefined;
 }
 
 /**
-Add a node to the network
-*/
-SynthNet.prototype.addNode = function (node)
-{
-    assert (
+ Add a node to the network
+ */
+SynthNet.prototype.addNode = function (node) {
+    assert(
         this.nodes.indexOf(node) === -1,
         'node already in network'
     );
 
-    assert (
+    assert(
         !(node instanceof OutNode && this.outNode !== null),
         'output node already in network'
     );
@@ -301,13 +249,12 @@ SynthNet.prototype.addNode = function (node)
     this.order = undefined;
 
     return node;
-}
+};
 
 /**
-Produce a topological ordering of the nodes
-*/
-SynthNet.prototype.orderNodes = function ()
-{
+ Produce a topological ordering of the nodes
+ */
+SynthNet.prototype.orderNodes = function () {
     console.log('Computing node ordering');
 
     // Set of nodes with no outgoing edges
@@ -320,8 +267,7 @@ SynthNet.prototype.orderNodes = function ()
     var numEdges = 0;
 
     // For each graph node
-    for (var i = 0; i < this.nodes.length; ++i)
-    {
+    for (var i = 0; i < this.nodes.length; ++i) {
         var node = this.nodes[i];
 
         //console.log('Graph node: ' + node.name);
@@ -330,17 +276,14 @@ SynthNet.prototype.orderNodes = function ()
         node.inEdges = [];
 
         // Collect all inputs for this node
-        for (k in node)
-        {
-            if (node[k] instanceof SynthInput)
-            {
+        for (k in node) {
+            if (node[k] instanceof SynthInput) {
                 var synthIn = node[k];
 
                 //console.log('Input port: ' + synthIn.name);
                 //console.log(synthIn.src);
 
-                if (synthIn.src instanceof SynthOutput)
-                {
+                if (synthIn.src instanceof SynthOutput) {
                     //console.log(node.name + ': ' + synthIn.name);
 
                     node.inEdges.push(synthIn.src);
@@ -357,8 +300,7 @@ SynthNet.prototype.orderNodes = function ()
     console.log('Num edges: ' + numEdges);
 
     // While S not empty
-    while (S.length > 0)
-    {
+    while (S.length > 0) {
         var node = S.pop();
 
         console.log('Graph node: ' + node.name);
@@ -366,15 +308,12 @@ SynthNet.prototype.orderNodes = function ()
         L.push(node);
 
         // For each output port of this node
-        for (k in node)
-        {
-            if (node[k] instanceof SynthOutput)
-            {
+        for (var k in node) {
+            if (node[k] instanceof SynthOutput) {
                 var synthOut = node[k];
 
                 // For each destination of this port
-                for (var i = 0; i < synthOut.dsts.length; ++i)
-                {
+                for (var i = 0; i < synthOut.dsts.length; ++i) {
                     var dstIn = synthOut.dsts[i];
                     var dstNode = dstIn.node;
 
@@ -382,7 +321,7 @@ SynthNet.prototype.orderNodes = function ()
 
                     var idx = dstNode.inEdges.indexOf(synthOut);
 
-                    assert (
+                    assert(
                         idx !== -1,
                         'input port not found'
                     );
@@ -399,12 +338,12 @@ SynthNet.prototype.orderNodes = function ()
         }
     }
 
-    assert (
+    assert(
         numEdges === 0,
         'cycle in graph'
     );
 
-    assert (
+    assert(
         L.length === this.nodes.length,
         'invalid ordering length'
     );
@@ -413,31 +352,29 @@ SynthNet.prototype.orderNodes = function ()
 
     // Store the ordering
     this.order = L;
-}
+};
 
 /**
-Generate audio for each output channel.
-@returns An array of audio samples (one per channel).
-*/
-SynthNet.prototype.genOutput = function (time)
-{
-    assert (
+ Generate audio for each output channel.
+ @returns An array of audio resources (one per channel).
+ */
+SynthNet.prototype.genOutput = function (time) {
+    assert(
         this.order instanceof Array,
         'node ordering not found'
     );
 
-    assert (
+    assert(
         this.outNode instanceof SynthNode,
         'genSample: output node not found'
     );
 
     // For each node in the order
-    for (var i = 0; i < this.order.length; ++i)
-    {
+    for (var i = 0; i < this.order.length; ++i) {
         var node = this.order[i];
 
         // Reset the outputs for this node
-        for (k in node)
+        for (var k in node)
             if (node[k] instanceof SynthOutput)
                 node[k].hasData = false;
 
@@ -447,24 +384,23 @@ SynthNet.prototype.genOutput = function (time)
 
     // Return the output node
     return this.outNode;
-}
+};
 
 //============================================================================
 // Output node
 //============================================================================
 
 /**
-@class Output node
-@extends SynthNode
-*/
-function OutNode(numChans)
-{
+ @class Output node
+ @extends SynthNode
+ */
+function OutNode(numChans) {
     if (numChans === undefined)
         numChans = 2;
 
     /**
-    Number of output channels
-    */
+     Number of output channels
+     */
     this.numChans = numChans;
 
     // Audio input signal
@@ -475,10 +411,9 @@ function OutNode(numChans)
 OutNode.prototype = new SynthNode();
 
 /**
-Get the buffer for a given output channel
-*/
-OutNode.prototype.getBuffer = function (chanIdx)
-{
+ Get the buffer for a given output channel
+ */
+OutNode.prototype.getBuffer = function (chanIdx) {
     return this.signal.getBuffer(chanIdx);
-}
+};
 
